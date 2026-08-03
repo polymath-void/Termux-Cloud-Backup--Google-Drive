@@ -38,16 +38,13 @@ KNOWN_CLIENTS = {
         "inclusions": ["hermes-agent", "config.json", "sessions", "memories"]
     },
     "termux": {
-        "name": "Termux User Data",
+        "name": "Termux All User Data",
         "path": HOME,
-        "inclusions": [
-            ".termux", ".bashrc", ".zshrc", ".profile", ".gitconfig", ".ssh",
-            "AGY", "skills-workspace"
-        ]
+        "inclusions": ["."]  # Includes all Termux home userdata (excluding store/cache paths)
     }
 }
 
-# Universal Exclusions
+# Explicitly excluded store, cache, and heavy media directories
 EXCLUDED_PATTERNS = [
     "storage", "store", "downloads", "shared", "cache", ".cache",
     "node_modules", "cli.log", "crashes", "updater", "*.lock", "*.tmp",
@@ -76,18 +73,16 @@ def get_active_targets():
     cfg = load_user_config()
     active = {}
     
-    # 1. Add enabled built-in clients
     for key in cfg.get("enabled_targets", []):
         if key in KNOWN_CLIENTS:
             active[key] = KNOWN_CLIENTS[key]
 
-    # 2. Add custom user-configured storage directories
     for custom_path in cfg.get("custom_directories", []):
         p = Path(custom_path).expanduser()
         name = f"custom_{p.name}"
         active[name] = {
             "name": f"Custom Dir ({p.name})",
             "path": p,
-            "inclusions": ["."]  # include all inside custom path
+            "inclusions": ["."]
         }
     return active
