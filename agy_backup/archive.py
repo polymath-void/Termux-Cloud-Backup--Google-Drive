@@ -9,11 +9,10 @@ import tarfile
 from pathlib import Path
 from .config import (
     HOME,
-    TARGET_PATHS,
-    TARGET_INCLUSIONS,
     EXCLUDED_PATTERNS,
     MANIFEST_FILE,
-    TEMP_DIR
+    TEMP_DIR,
+    get_active_targets
 )
 
 AGY_USER_DATA_DIR = HOME / ".gemini" / "antigravity-cli"
@@ -50,9 +49,9 @@ def save_manifest(manifest):
     with open(MANIFEST_FILE, "w") as f:
         json.dump(manifest, f, indent=2)
 
-def scan_target_files(target_name):
-    base_dir = TARGET_PATHS.get(target_name)
-    inclusions = TARGET_INCLUSIONS.get(target_name, [])
+def scan_target_files(target_name, target_info):
+    base_dir = target_info.get("path")
+    inclusions = target_info.get("inclusions", [])
     
     if not base_dir or not base_dir.exists():
         return {}
@@ -60,7 +59,11 @@ def scan_target_files(target_name):
     file_hashes = {}
 
     for item in inclusions:
-        src_path = base_dir / item
+        if item == ".":
+            src_path = base_dir
+        else:
+            src_path = base_dir / item
+
         if not src_path.exists():
             continue
 
@@ -87,10 +90,10 @@ def scan_target_files(target_name):
 
     return file_hashes
 
-def has_target_changed(target_name):
+def has_target_changed(target_name, target_info):
     manifest = load_manifest()
     last_target_hashes = manifest.get(target_name, {}).get("hashes", {})
-    current_hashes = scan_target_files(target_name)
+    current_hashes = scan_target_files(target_name, target_info)
 
     if not current_hashes:
         return False, current_hashes
@@ -100,9 +103,9 @@ def has_target_changed(target_name):
     
     return True, current_hashes
 
-def create_target_archive(target_name, output_dir=TEMP_DIR):
-    base_dir = TARGET_PATHS.get(target_name)
-    inclusions = TARGET_INCLUSIONS.get(target_name, [])
+def create_target_archive(target_name, target_info, output_dir=TEMP_DIR):
+    base_dir = target_info.get("path")
+    inclusions = target_info.get("inclusions", [])
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -110,11 +113,15 @@ def create_target_archive(target_name, output_dir=TEMP_DIR):
     archive_path = output_dir / archive_name
     sha256_path = output_dir / f"{archive_name}.sha256"
 
-    print(f"Archiving \033[1m{target_name.upper()}\033[0m data from \033[1m{base_dir}\033[0m ...")
+    print(f"Archiving \033[1m{target_info['name']}\033[0m from \033[1m{base_dir}\033[0m ...")
 
     with tarfile.open(archive_path, "w:gz") as tar:
         for item in inclusions:
-            src_path = base_dir / item
+            if item == ".":
+                src_path = base_dir
+            else:
+                src_path = base_dir / item
+
             if not src_path.exists():
                 continue
 
@@ -135,6 +142,7 @@ def create_target_archive(target_name, output_dir=TEMP_DIR):
                         file_rel = rel_root / f
                         if not is_excluded(file_rel):
                             full_file_path = base_dir / file_rel
+                            arc_name = item if item != "." else str(file_rel)
                             tar.add(full_file_path, arcname=str(file_rel))
 
     sha256_hex = compute_file_sha256(archive_path)
@@ -174,7 +182,7 @@ def verify_checksum(archive_path, sha256_path):
         return False
 
 def create_pre_restore_snapshot():
-    target_dir = TARGET_PATHS["agy"]
+    target_dir = AGY_USER_DATA_DIR
     if target_dir.exists():
         print(f"Creating pre-restore safety snapshot at \033[1m{PRE_RESTORE_BAK_DIR}\033[0m...")
         if PRE_RESTORE_BAK_DIR.exists():
@@ -183,13 +191,13 @@ def create_pre_restore_snapshot():
         print("\033[1;32m✓ Pre-restore safety snapshot saved.\033[0m")
     return PRE_RESTORE_BAK_DIR
 
-def restore_target_archive(target_name, archive_path):
-    target_dir = TARGET_PATHS.get(target_name, TARGET_PATHS["agy"])
+def restore_target_archive(target_name, target_info, archive_path):
+    target_dir = target_info.get("path", AGY_USER_DATA_DIR)
     archive_path = Path(archive_path)
     if not archive_path.exists():
         raise FileNotFoundError(f"Archive file not found: {archive_path}")
 
-    print(f"Restoring \033[1m{target_name.upper()}\033[0m user data into \033[1m{target_dir}\033[0m...")
+    print(f"Restoring \033[1m{target_name.upper()}\033[0m data into \033[1m{target_dir}\033[0m...")
     
     with tarfile.open(archive_path, "r:gz") as tar:
         tar.extractall(path=target_dir)
@@ -202,7 +210,7 @@ def restore_target_archive(target_name, archive_path):
     print(f"\033[1;32m✓ {target_name.upper()} Restoration completed successfully!\033[0m")
 
 def rollback_snapshot():
-    target_dir = TARGET_PATHS["agy"]
+    target_dir = AGY_USER_DATA_DIR
     if not PRE_RESTORE_BAK_DIR.exists():
         print(f"Error: No pre-restore snapshot found at {PRE_RESTORE_BAK_DIR}", file=sys.stderr)
         return False

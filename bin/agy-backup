@@ -2,8 +2,9 @@
 import sys
 import os
 
-# Add project root directory to python path
-pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Resolve realpath to support symlinked execution
+real_file = os.path.realpath(__file__)
+pkg_dir = os.path.dirname(os.path.dirname(real_file))
 if pkg_dir not in sys.path:
     sys.path.insert(0, pkg_dir)
 
