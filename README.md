@@ -12,6 +12,7 @@ A lightweight, high-performance, pure-Python cloud backup & restoration tool eng
 
 - 🔄 **Incremental Update Sync**: Uses SHA256 file manifest tracking to detect file changes. If no files changed, it skips redundant uploads. If files changed, it updates the existing cloud file instance rather than creating duplicate files.
 - 📁 **Manual Local Directory Options**: Allows exporting/syncing backup archives to local folders (e.g., SD card, shared storage, or custom local directories).
+- 🚫 **Smart Exclusions**: Automatically excludes heavy binary caches (`.cache`, `node_modules`), temporary logs (`cli.log`), and Android shared storage mounts (`storage/`, `store/`, `downloads/`, `shared/`) to keep backup archives lightweight and fast.
 - 🔑 **Headless Google Drive OAuth2**: Native OAuth2 Device Authorization Flow (`RFC 8628`), perfectly suited for terminal environments without desktop browser requirements.
 - 🎯 **Multi-Target Backup Selector**:
   - `agy`: AGY CLI database (`~/.gemini/antigravity-cli`: settings, knowledge, skills, memory, conversations, brain, MCP)
@@ -22,150 +23,160 @@ A lightweight, high-performance, pure-Python cloud backup & restoration tool eng
 
 ---
 
-## 🚀 Use Cases
+## 🚫 Directory Exclusions (What is NOT backed up)
 
-### 1. Daily Development Sync
-Run `agy-backup backup --target all` at the end of your coding session. Only updated files, updated chat history, or new skills will be packed and synced to Google Drive `/AGY_Backups`.
+To prevent gigabytes of media or transient files from cluttering your cloud backup, the following paths are **strictly excluded**:
 
-### 2. Device Migration & Recovery
-Moving to a new Android phone or setting up a fresh Termux installation? Install `agy-backup`, authenticate with Google Drive, and run `agy-backup restore` to instantly restore your entire AI development state, saved skills, and configurations.
-
-### 3. Local SD Card Backup
-Need an offline backup copy on local phone storage or an SD card without uploading to the cloud? Run `agy-backup backup -l ~/storage/downloads/Backups --local-only`.
-
-### 4. Emergency State Rollback
-If a restored backup or accidental configuration edit breaks your setup, run `agy-backup rollback` to instantly restore the pre-operation local snapshot.
+| Path / Pattern | Reason for Exclusion |
+|---|---|
+| `~/storage/`, `~/store/`, `~/downloads/` | Android shared storage mounts (photos, videos, large downloads). |
+| `~/.cache/`, `node_modules/` | Temporary package & model binary caches. |
+| `cli.log`, `crashes/`, `updater/` | Session runtime logs & temporary update dumps. |
+| `*.lock`, `*.tmp` | Active process lock files. |
+| `.git/objects/` | Git pack caches (git source code files remain included). |
 
 ---
 
-## 🛠️ Installation & Setup
+## 📖 Comprehensive Step-by-Step Restoration Guide
 
-### 1. Clone & Initialize Local Repository
-```bash
-git clone ~/Termux-Cloud-Backup-Google-Drive
-cd Termux-Cloud-Backup-Google-Drive
-chmod +x bin/agy-backup
-```
+### Scenario 1: Restoring on a New Phone / Fresh Termux Install
+When setting up a brand-new device:
 
-### 2. Link Executable to Path
-```bash
-ln -sf ~/Termux-Cloud-Backup-Google-Drive/bin/agy-backup $PREFIX/bin/agy-backup
-termux-fix-shebang $PREFIX/bin/agy-backup
-```
-
-### 3. Verify Installation
-```bash
-agy-backup status
-```
-
----
-
-## 🔑 Google Drive Authentication Guide
-
-`agy-backup` connects securely to Google Drive via **Google Drive API v3**.
-
-1. **Obtain Google OAuth Client Credentials**:
-   - Go to [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials).
-   - Click **+ Create Credentials** $\rightarrow$ **OAuth client ID**.
-   - Application type: **TVs and Limited Input devices** (or **Desktop app**).
-   - Name: `AGY Backup` $\rightarrow$ Click **Create**.
-   - Copy your **Client ID** and **Client Secret**.
-
-2. **Authenticate in Termux**:
+1. **Install Python & Git**:
+   ```bash
+   pkg update && pkg install python git
+   ```
+2. **Clone Repository & Install Tool**:
+   ```bash
+   git clone https://github.com/polymath-void/Termux-Cloud-Backup-Google-Drive.git ~/Termux-Cloud-Backup-Google-Drive
+   chmod +x ~/Termux-Cloud-Backup-Google-Drive/bin/agy-backup
+   ln -sf ~/Termux-Cloud-Backup-Google-Drive/bin/agy-backup $PREFIX/bin/agy-backup
+   termux-fix-shebang $PREFIX/bin/agy-backup
+   ```
+3. **Authenticate Google Drive**:
    ```bash
    agy-backup auth
    ```
-   - Input your Client ID and Client Secret when prompted.
-   - Open [https://www.google.com/device](https://www.google.com/device) and enter the 8-digit device code.
-   - Once approved, access and refresh tokens will be saved to `~/.gemini/antigravity-cli/gdrive_token.json`.
+4. **List & Restore Remote Backups**:
+   ```bash
+   # See available cloud backups
+   agy-backup list
+
+   # Restore all components (AGY CLI, Gemini CLI, Termux environment)
+   agy-backup restore -t agy 1
+   agy-backup restore -t gemini 1
+   agy-backup restore -t termux 1
+   ```
 
 ---
 
-## 📖 User Guide & Command Reference
-
-### `agy-backup backup`
-Perform incremental update sync for specified target components.
+### Scenario 2: Restoring from a Specific Cloud Backup Version
+If you have multiple backups saved in Google Drive:
 
 ```bash
-# Sync all targets (AGY, Gemini CLI, Termux) to Google Drive
-agy-backup backup --target all
-
-# Sync only AGY CLI user data
-agy-backup backup -t agy
-
-# Sync to Google Drive AND save a copy to a manual local directory
-agy-backup backup -t all -l ~/storage/downloads/Backups
-
-# Perform a local-only backup (skip cloud upload)
-agy-backup backup -t termux -l ~/manual_backups --local-only
-
-# Force a re-backup even if no file changes were detected
-agy-backup backup -t all --force
-```
-
----
-
-### `agy-backup list`
-List all remote backup instances stored in Google Drive `/AGY_Backups`.
-
-```bash
+# 1. List remote backups to find File IDs or list index numbers
 agy-backup list
-```
 
----
+# Output Example:
+# #   Backup Name                      Size (MB)  Created Date         File ID
+# 1   agy_backup_latest.tar.gz         1.65       2026-08-03 23:13:21  1ldLJJgGFoztb8b6Q3td0Izc40jd8Rx06
+# 2   gemini_backup_latest.tar.gz      0.01       2026-08-03 23:12:59  1yBjLg3FPtu9i0q8HAdC29RxkjTNl9Jgr
 
-### `agy-backup restore`
-Safely restore user data from Google Drive or a local archive.
-
-```bash
-# Restore latest AGY backup from Google Drive
-agy-backup restore -t agy
-
-# Restore specific backup by File ID or List Index #
+# 2. Restore using List Index #
 agy-backup restore -t agy 1
 
-# Restore directly from a local backup archive file
-agy-backup restore -t gemini --local-file ~/manual_backups/gemini_backup_latest.tar.gz
+# 3. Restore using Google Drive File ID
+agy-backup restore -t agy 1ldLJJgGFoztb8b6Q3td0Izc40jd8Rx06
 ```
 
 ---
 
-### `agy-backup rollback`
-Perform an emergency rollback to the pre-restore local safety snapshot.
+### Scenario 3: Restoring from a Local Backup File (`--local-file`)
+If you stored a backup archive on your SD card or local directory:
+
+```bash
+agy-backup restore -t agy --local-file ~/manual_backups/agy_backup_latest.tar.gz
+```
+
+---
+
+### Scenario 4: Emergency Local Rollback (`agy-backup rollback`)
+Before any restore operation executes, `agy-backup` automatically saves a local pre-restore snapshot at `~/.gemini/antigravity-cli.pre-restore.bak`. If a restoration breaks your configuration:
 
 ```bash
 agy-backup rollback
 ```
+*This instantly restores your local state prior to the restoration attempt.*
 
 ---
 
-### `agy-backup status`
-View target paths, credentials status, token validity, and local snapshot state.
+## ⏰ Cron & Automated Scheduled Backups
+
+You can set up automated, hands-free cloud backups so your environment is synced daily without manual interaction.
+
+### Method A: Standard Termux Cron (`crontab`)
+
+1. **Install `cronie`**:
+   ```bash
+   pkg install cronie
+   ```
+2. **Edit Crontab**:
+   ```bash
+   crontab -e
+   ```
+3. **Add Daily Backup Schedule (Runs every night at 2:00 AM)**:
+   ```cron
+   0 2 * * * /data/data/com.termux/files/usr/bin/agy-backup backup --target all > /dev/null 2>&1
+   ```
+4. **Start Cron Service**:
+   ```bash
+   crond
+   ```
+
+---
+
+### Method B: Android Native Job Scheduler (`termux-job-scheduler`)
+
+Termux can schedule background Android system jobs that survive reboots:
 
 ```bash
-agy-backup status
+termux-job-scheduler \
+  --job-id 101 \
+  --script "$PREFIX/bin/agy-backup backup --target all" \
+  --period-ms 86400000 \
+  --charging true \
+  --net-connected true
+```
+*This schedules `agy-backup backup --target all` to run once every 24 hours (86,400,000 ms) while the phone is connected to Wi-Fi and charging.*
+
+---
+
+### Method C: AGY CLI `/schedule` Slash Command
+
+Inside AGY CLI, you can schedule recurring automated backups using `/schedule`:
+
+```
+/schedule
+Cron: "0 2 * * *"
+Prompt: "Run `agy-backup backup --target all` to sync AGY user data to Google Drive."
 ```
 
 ---
 
-## 🔄 Incremental Update Mechanism
+## 📖 Complete Command Reference
 
-```
-[ Local Files ] ---> [ SHA256 Hash Matrix ] vs [ Saved Manifest (backup_manifest.json) ]
-                             |
-              +--------------+--------------+
-              |                             |
-      (No Hashes Changed)           (Hashes Changed)
-              |                             |
-      [ Skip Upload ]            [ Generate Target .tar.gz ]
-    "Up to date" printed                 |
-                                 [ Update Remote File ID ]
-                                 (Overwrites existing instance)
-```
-
-1. **Manifest File**: `~/.gemini/antigravity-cli/backup_manifest.json`
-2. **File Checksum Comparison**: Scans included paths, computes SHA256 hashes, and compares against the previous run.
-3. **Single Remote Instance**: Overwrites/updates the existing remote file ID on Google Drive (e.g. `agy_backup_latest.tar.gz`) instead of cluttering your cloud storage with thousands of duplicate files.
+| Command | Action |
+|---|---|
+| `agy-backup auth` | Authenticate with Google Drive OAuth2 |
+| `agy-backup backup [-t target]` | Incremental cloud sync (`agy`, `gemini`, `termux`, `all`) |
+| `agy-backup backup -l <dir_path>` | Save backup archive copy to local folder option |
+| `agy-backup backup --local-only -l <path>` | Local-only backup (skip cloud upload) |
+| `agy-backup backup --force` | Force backup creation even if no files changed |
+| `agy-backup list` | List remote backup instances on Google Drive |
+| `agy-backup restore [-t target] [id]` | Restore target user data from Google Drive |
+| `agy-backup restore --local-file <path>` | Restore target user data from local file |
+| `agy-backup rollback` | Emergency rollback to pre-restore local safety snapshot |
+| `agy-backup status` | Show target paths, credentials, and snapshot status |
 
 ---
 

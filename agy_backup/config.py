@@ -58,8 +58,12 @@ TARGET_INCLUSIONS = {
     ]
 }
 
-# Universal exclusions
+# Explicitly excluded store, cache, and heavy media directories
 EXCLUDED_PATTERNS = [
+    "storage",
+    "store",
+    "downloads",
+    "shared",
     "cache",
     ".cache",
     "node_modules",
