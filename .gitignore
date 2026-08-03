@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.gemini/
+*.tar.gz
+*.sha256
+gdrive_credentials.json
+gdrive_token.json
+backup_manifest.json
+.DS_Store
