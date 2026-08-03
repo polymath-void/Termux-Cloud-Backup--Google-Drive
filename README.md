@@ -41,10 +41,15 @@ SEO Keywords: Termux Google Drive Backup, Android Termux Cloud Backup, Termux Re
 ### Core Capabilities
 
 - 🔄 **Incremental Matrix Syncing**: Employs SHA-256 file manifest tracking (`backup_manifest.json`) to calculate delta state changes. When files are unmodified, backup steps are bypassed. When files change, existing Google Drive cloud file instances are patched in-place to prevent cloud clutter.
+  
 - ⚙️ **Universal CLI Agent Support**: Natively auto-detects and manages databases for **Antigravity AGY CLI** (`~/.gemini/antigravity-cli`), **Gemini CLI** (`~/.gemini`), **Hermes Agent CLI** (`~/.hermes`), and custom Termux environment dotfiles (`~`).
+  
 - 📂 **Interactive Storage Directory Manager**: Add or remove custom project directories (`agy-backup add-dir <path>`) or shared Android storage folders (`/sdcard/Documents`) on the fly.
+  
 - 🔑 **RFC 8628 Headless OAuth2**: Implements Google OAuth2 Device Authorization Grant, allowing seamless browser-based authentication without requiring a desktop display server or GUI.
+  
 - 💾 **Dual Storage Modes**: Sync directly to Google Drive cloud storage or export timestamped tarballs to manual local directory options (e.g. SD cards or external USB storage).
+  
 - 🛡️ **Fail-Safe Rollback Engine**: Automatically captures a pre-restore local safety snapshot (`~/.gemini/antigravity-cli.pre-restore.bak`) and enforces cryptographic SHA-256 digest validation prior to archive extraction.
 
 ---
