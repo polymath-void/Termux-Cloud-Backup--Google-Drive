@@ -173,6 +173,17 @@ def cmd_list_dirs(args):
     print("=" * 70 + "\n")
 
 def cmd_backup(args):
+    # Save the package list before starting the backup
+    try:
+        print("Generating installed package list for system restore...")
+        termux_dir = Path(os.environ.get("HOME", "/data/data/com.termux/files/home")) / ".termux"
+        termux_dir.mkdir(parents=True, exist_ok=True)
+        os.system(f"pkg list-installed > {termux_dir}/installed_packages_detailed.txt 2>/dev/null")
+        os.system(f"apt-mark showmanual > {termux_dir}/installed_packages.txt 2>/dev/null")
+        print("\033[1;32m✓ Installed package lists saved to ~/.termux/\033[0m")
+    except Exception as e:
+        print(f"Warning: Failed to export package lists: {e}")
+
     active_targets = get_active_targets()
 
     if args.target == "all":
