@@ -9,10 +9,11 @@ SEO Keywords: Termux Google Drive Backup, Android Termux Cloud Backup, Termux Re
 [![Platform](https://img.shields.io/badge/Platform-Android%20Termux-brightgreen?logo=android)](https://termux.dev)
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
 [![Cloud API](https://img.shields.io/badge/API-Google%20Drive%20v3-orange?logo=googledrive)](https://developers.google.com/drive)
+[![Agent Skill Adaptations](https://img.shields.io/badge/Agent%20Skill%20Adaptations-1%20Verified-blueviolet?logo=openai)](AGENT_ADAPTATION_METRICS.md)
 [![Security Audit](https://img.shields.io/badge/Security-Audited%20%26%20Safe-success?logo=shieldsdotio)](https://github.com/polymath-void/Termux-Cloud-Backup--Google-Drive#-security-audit--token-safety)
 [![Cite](https://img.shields.io/badge/Cite-BibTeX-purple)](#-citation--attribution)
 
-> A lightweight, pure-Python cloud backup & restoration tool for **Android Termux**. Features **incremental update sync**, **Google Drive OAuth2 authentication**, **manual local folder exports**, and automated database protection for **AGY CLI**, **Gemini CLI**, **Hermes**, and **Termux home userdata**.
+> A lightweight, pure-Python cloud backup & restoration tool for **Android Termux**. Features **incremental update sync**, **Google Drive OAuth2 authentication**, **manual local folder exports**, **AI Agent Skill Auto-Discovery**, and automated protection for **AGY CLI**, **Gemini CLI**, **Hermes**, and **Termux home userdata**.
 
 ---
 
